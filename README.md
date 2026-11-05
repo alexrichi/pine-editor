@@ -4,18 +4,24 @@ Pine Script v6 language support for CodeMirror 6: highlighting, completions and
 diagnostics.
 
 ```ts
-import { pineLanguage, pineHighlighting, pineCompletions, pineLinter } from '@screener/pine-editor';
+import {
+  pineLanguage,
+  pineThemeExtensions,
+  pineCompletions,
+  pineLinter,
+} from '@screener/pine-editor';
 
 const extensions = [
   pineLanguage(),
-  pineHighlighting(palette),
+  ...pineThemeExtensions(),
   autocompletion({ override: [pineCompletions] }),
   pineLinter(),
 ];
 ```
 
-`pineHighlighting` takes a palette so the editor follows the host app's theme
-instead of importing its tokens.
+The theme defaults to `--pine-*` custom properties with hardcoded fallbacks, so
+the host changes colors in CSS and a theme switch needs no re-render.
+`pineThemeExtensions(palette)` overrides them when the host has no such tokens.
 
 ## Data source
 
