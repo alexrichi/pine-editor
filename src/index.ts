@@ -14,4 +14,5 @@ export {
   type PinePalette,
 } from './highlight';
 export { pineCompletions, pineCompletionOptions } from './complete';
-export { pineLinter, toDiagnostics } from './lint';
+export { pineLinter, toDiagnostics, findingsToDiagnostics } from './lint';
+export { lintPineSource, type PineLintFinding, type PineLintSeverity } from './lint-rules';
