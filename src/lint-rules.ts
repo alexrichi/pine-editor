@@ -1,6 +1,6 @@
 export type PineLintSeverity = 'error' | 'warning' | 'info';
 
-/** One source-level finding, independent of CodeMirror. */
+/** One source-level finding, independent of the host editor. */
 export interface PineLintFinding {
   /** Stable rule id for tests and host filtering. */
   code: string;
@@ -146,7 +146,7 @@ function lineRules(source: string, out: PineLintFinding[]): void {
  * High-signal v6 checks the reference validator does not own: a missing
  * declaration, the removed `when` argument, short timeframe comparisons and
  * history on literals. Findings are source-only so the host can test or
- * filter them without CodeMirror.
+ * filter them without an editor.
  */
 export function lintPineSource(source: string): PineLintFinding[] {
   const out: PineLintFinding[] = [];

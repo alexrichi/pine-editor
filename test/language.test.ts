@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { pineTokens } from '../src/language';
+import {
+  PINE_INITIAL_STATE,
+  pineTokens,
+  tokenizePineLine,
+} from '../src/language';
 
 function typesOf(line: string): Array<string | null> {
   return pineTokens(line).map((token) => token.type);
@@ -41,5 +45,49 @@ describe('pineTokens', () => {
   it('does not lose characters', () => {
     const line = 'plot(ta.sma(close, 20), color=color.red, linewidth=2)';
     expect(pineTokens(line).map((token) => token.text).join('')).toBe(line);
+  });
+});
+
+describe('Pine annotations', () => {
+  it('splits a compiler annotation out of the comment', () => {
+    expect(pineTokens('//@version=6').map((token) => [token.type, token.text])).toEqual([
+      ['comment', '//'],
+      ['annotation', '@version'],
+      ['comment', '=6'],
+    ]);
+  });
+
+  it('leaves an ordinary comment whole', () => {
+    expect(textOf('// real comment', 'comment')).toEqual(['// real comment']);
+  });
+});
+
+describe('tokenizePineLine', () => {
+  it('keeps a triple-quoted double string open across lines', () => {
+    const first = tokenizePineLine('x = """hello', PINE_INITIAL_STATE);
+    expect(first.tokens.map((token) => token.text).join('')).toBe('x = """hello');
+    expect(first.tokens.find((token) => token.type === 'string')?.text).toBe('"""hello');
+    expect(first.state.triple).toBe('"""');
+
+    const second = tokenizePineLine('world""" + b', first.state);
+    expect(second.tokens.map((token) => token.text).join('')).toBe('world""" + b');
+    expect(second.tokens[0]).toEqual({ type: 'string', text: 'world"""' });
+    expect(second.state.triple).toBeNull();
+  });
+
+  it('closes a single-line triple-quoted string and keeps the code after it', () => {
+    const result = tokenizePineLine('a = """x""" // note', PINE_INITIAL_STATE);
+    expect(result.tokens.map((token) => token.text).join('')).toBe('a = """x""" // note');
+    expect(result.tokens.find((token) => token.type === 'string')?.text).toBe('"""x"""');
+    expect(textOf('a = """x""" // note', 'comment')).toEqual(['// note']);
+    expect(result.state.triple).toBeNull();
+  });
+
+  it('handles the single-quoted triple form', () => {
+    const first = tokenizePineLine("s = '''line", PINE_INITIAL_STATE);
+    expect(first.state.triple).toBe("'''");
+    const second = tokenizePineLine("two'''", first.state);
+    expect(second.tokens).toEqual([{ type: 'string', text: "two'''" }]);
+    expect(second.state.triple).toBeNull();
   });
 });

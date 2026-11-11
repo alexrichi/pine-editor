@@ -1,10 +1,7 @@
-import { StreamLanguage } from '@codemirror/language';
-import { tags } from '@lezer/highlight';
-import type { Extension } from '@codemirror/state';
-
 /** Control flow, declarations and modifiers that read as keywords. */
 const KEYWORDS = new Set([
   'and',
+  'as',
   'break',
   'by',
   'continue',
@@ -17,6 +14,7 @@ const KEYWORDS = new Set([
   'in',
   'method',
   'not',
+  'once',
   'or',
   'return',
   'switch',
@@ -37,6 +35,7 @@ const TYPE_NAMES = new Set([
   'color',
   'const',
   'float',
+  'footprint',
   'input',
   'int',
   'label',
@@ -49,11 +48,26 @@ const TYPE_NAMES = new Set([
   'simple',
   'string',
   'table',
+  'volume_row',
 ]);
 
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*/;
 const NUMBER = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?/;
 const HEX_COLOR = /^#[0-9a-fA-F]{6,8}\b/;
+
+/** Compiler annotations that read as metadata inside a line comment. */
+const ANNOTATIONS = new Set([
+  '@description',
+  '@enum',
+  '@field',
+  '@function',
+  '@param',
+  '@returns',
+  '@strategy_alert_message',
+  '@type',
+  '@variable',
+  '@version',
+]);
 
 /** Namespaces that only read differently when a member follows the dot. */
 const NAMESPACES = new Set([
@@ -98,8 +112,8 @@ export interface PineToken {
 }
 
 /**
- * Tokenize one Pine line. Exported so the tokenizer can be tested without a
- * CodeMirror editor; the stream parser below is a thin wrapper around it.
+ * Tokenize one Pine line. Exported so the tokenizer can be tested without an
+ * editor and mapped onto any host's token names.
  */
 export function pineTokens(line: string, start = 0): PineToken[] {
   const tokens: PineToken[] = [];
@@ -121,7 +135,7 @@ export function pineTokens(line: string, start = 0): PineToken[] {
     }
 
     if (rest.startsWith('//')) {
-      push('comment', rest);
+      for (const token of commentTokens(rest)) push(token.type, token.text);
       continue;
     }
 
@@ -173,56 +187,102 @@ export function pineTokens(line: string, start = 0): PineToken[] {
   return tokens;
 }
 
-const TOKEN_TABLE = {
-  keyword: tags.keyword,
-  bool: tags.bool,
-  string: tags.string,
-  number: tags.number,
-  color: tags.color,
-  comment: tags.lineComment,
-  function: tags.function(tags.variableName),
-  variableName: tags.variableName,
-  namespace: tags.namespace,
-  constant: tags.constant(tags.variableName),
-  typeName: tags.typeName,
-  operator: tags.operator,
-  punctuation: tags.punctuation,
-};
+function commentTokens(comment: string): PineToken[] {
+  const match = /^(\/\/)(@[A-Za-z_]+)/.exec(comment);
+  if (!match || !ANNOTATIONS.has(match[2]!)) return [{ type: 'comment', text: comment }];
+  const tokens: PineToken[] = [
+    { type: 'comment', text: match[1]! },
+    { type: 'annotation', text: match[2]! },
+  ];
+  if (comment.length > match[0].length) {
+    tokens.push({ type: 'comment', text: comment.slice(match[0].length) });
+  }
+  return tokens;
+}
 
-export const pineStreamParser = {
-  name: 'pine',
-  token(stream: { string: string; pos: number; start: number; next: () => void }) {
-    const rest = stream.string.slice(stream.pos);
+const TRIPLE_QUOTES = ['"""', "'''"] as const;
+export type PineTripleQuote = (typeof TRIPLE_QUOTES)[number];
 
-    if (/^\s+/.test(rest)) {
-      const match = /^\s+/.exec(rest)![0];
-      for (let index = 0; index < match.length; index += 1) stream.next();
-      return null;
+export interface PineTokenState {
+  triple: PineTripleQuote | null;
+}
+
+export const PINE_INITIAL_STATE: PineTokenState = { triple: null };
+
+/** Find a triple-quoted string start outside a normal string or comment. */
+function findTripleStart(line: string): { index: number; quote: PineTripleQuote } | null {
+  let index = 0;
+  while (index < line.length) {
+    const rest = line.slice(index);
+    if (rest.startsWith('//')) return null;
+    const char = line[index];
+    if (char === '"' || char === "'") {
+      if (line.slice(index, index + 3) === char.repeat(3)) {
+        return { index, quote: char.repeat(3) as PineTripleQuote };
+      }
+      index += 1;
+      while (index < line.length) {
+        if (line[index] === '\\') {
+          index += 2;
+          continue;
+        }
+        if (line[index] === char) {
+          index += 1;
+          break;
+        }
+        index += 1;
+      }
+      continue;
     }
+    index += 1;
+  }
+  return null;
+}
 
-    if (rest.startsWith('//')) {
-      while (stream.pos < stream.string.length) stream.next();
-      return 'comment';
+/**
+ * Tokenize one line with the line state Pine needs for triple-quoted strings.
+ * `pineTokens` stays a pure single-line tokenizer for tests and short snippets.
+ */
+export function tokenizePineLine(
+  line: string,
+  state: PineTokenState,
+): { tokens: PineToken[]; state: PineTokenState } {
+  if (state.triple) {
+    const close = line.indexOf(state.triple);
+    if (close === -1) {
+      return { tokens: line ? [{ type: 'string', text: line }] : [], state };
     }
+    const end = close + state.triple.length;
+    return {
+      tokens: [{ type: 'string', text: line.slice(0, end) }, ...pineTokens(line, end)],
+      state: PINE_INITIAL_STATE,
+    };
+  }
 
-    const tokens = pineTokens(stream.string, stream.pos);
-    const first = tokens[0];
-    if (!first) {
-      stream.next();
-      return null;
-    }
-    for (let index = 0; index < first.text.length; index += 1) stream.next();
-    return first.type;
-  },
-  tokenTable: TOKEN_TABLE,
-  languageData: {
-    commentTokens: { line: '//' },
-    closeBrackets: { brackets: ['(', '[', '{', '"', "'"] },
-    indentOnInput: /^\s*(?:else|for|while|if)\b/,
-  },
-};
+  const triple = findTripleStart(line);
+  if (!triple) {
+    return { tokens: pineTokens(line), state: PINE_INITIAL_STATE };
+  }
 
-/** The Pine v6 language for CodeMirror. */
-export function pineLanguage(): Extension {
-  return StreamLanguage.define(pineStreamParser as Parameters<typeof StreamLanguage.define>[0]);
+  const { index, quote } = triple;
+  const close = line.indexOf(quote, index + quote.length);
+  if (close === -1) {
+    return {
+      tokens: [
+        ...pineTokens(line.slice(0, index)),
+        { type: 'string', text: line.slice(index) },
+      ],
+      state: { triple: quote },
+    };
+  }
+
+  const end = close + quote.length;
+  return {
+    tokens: [
+      ...pineTokens(line.slice(0, index)),
+      { type: 'string', text: line.slice(index, end) },
+      ...pineTokens(line, end),
+    ],
+    state: PINE_INITIAL_STATE,
+  };
 }

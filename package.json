@@ -1,7 +1,7 @@
 {
   "name": "@screener/pine-editor",
   "version": "0.1.0",
-  "description": "Pine Script v6 language support for CodeMirror 6: highlighting, completions and diagnostics.",
+  "description": "Pine Script v6 language data: tokenizer, completions and diagnostics, editor-agnostic.",
   "private": true,
   "type": "module",
   "license": "MIT",
@@ -17,21 +17,7 @@
   "dependencies": {
     "pinescript-v6-validator": "^0.4.3"
   },
-  "peerDependencies": {
-    "@codemirror/autocomplete": "^6.0.0",
-    "@codemirror/language": "^6.0.0",
-    "@codemirror/lint": "^6.0.0",
-    "@codemirror/state": "^6.0.0",
-    "@codemirror/view": "^6.0.0",
-    "@lezer/highlight": "^1.0.0"
-  },
   "devDependencies": {
-    "@codemirror/autocomplete": "^6.20.4",
-    "@codemirror/language": "^6.11.3",
-    "@codemirror/lint": "^6.9.7",
-    "@codemirror/state": "^6.7.6",
-    "@codemirror/view": "^6.43.15",
-    "@lezer/highlight": "^1.2.5",
     "typescript": "^5.9.3",
     "vitest": "^4.1.12"
   }

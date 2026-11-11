@@ -1,18 +1,8 @@
 /**
- * Pine v6 language support for CodeMirror: highlighting, completions and
- * diagnostics.
- *
- * The theme reads the host's `--pine-*` custom properties, so switching themes
- * needs no editor rebuild. Pass a palette to `pineThemeExtensions` when the host
- * has no such tokens.
+ * Pine v6 language data, independent of any editor: tokens, completions and
+ * diagnostics. Hosts map these onto their own editor API.
  */
-export { pineLanguage, pineTokens, pineStreamParser, type PineToken } from './language';
-export {
-  pineHighlightStyle,
-  pineEditorTheme,
-  pineThemeExtensions,
-  type PinePalette,
-} from './highlight';
-export { pineCompletions, pineCompletionOptions } from './complete';
-export { pineLinter, toDiagnostics, findingsToDiagnostics } from './lint';
+export { pineTokens, tokenizePineLine, PINE_INITIAL_STATE, type PineToken, type PineTokenState, type PineTripleQuote } from './language';
+export { pineCompletionOptions, type PineCompletion } from './complete';
+export { lintPineScript, validateFindings } from './lint';
 export { lintPineSource, type PineLintFinding, type PineLintSeverity } from './lint-rules';

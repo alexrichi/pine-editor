@@ -22,6 +22,7 @@ describe('pineCompletionOptions', () => {
     const options = await pineCompletionOptions();
     const sma = options.find((option) => option.label === 'ta.sma');
     expect(sma?.detail).toContain('sma');
+    expect(sma?.params).toEqual(['source', 'length']);
   });
 });
 

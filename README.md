@@ -1,27 +1,25 @@
 # pine-editor
 
-Pine Script v6 language support for CodeMirror 6: highlighting, completions and
-diagnostics.
+Pine Script v6 language data: a line tokenizer, completions and diagnostics,
+independent of any editor.
 
 ```ts
 import {
-  pineLanguage,
-  pineThemeExtensions,
-  pineCompletions,
-  pineLinter,
+  pineTokens,
+  pineCompletionOptions,
+  lintPineScript,
+  lintPineSource,
 } from '@screener/pine-editor';
 
-const extensions = [
-  pineLanguage(),
-  ...pineThemeExtensions(),
-  autocompletion({ override: [pineCompletions] }),
-  pineLinter(),
-];
+const tokens = pineTokens('rsi = ta.rsi(close, 14)');
+const completions = await pineCompletionOptions();
+const findings = await lintPineScript(source); // MIT validator + local v6 rules
+const localOnly = lintPineSource(source);
 ```
 
-The theme defaults to `--pine-*` custom properties with hardcoded fallbacks, so
-the host changes colors in CSS and a theme switch needs no re-render.
-`pineThemeExtensions(palette)` overrides them when the host has no such tokens.
+Hosts map tokens to their own scopes, completions to their own suggestion list
+and findings to their own markers. The app does this in
+`src/lib/monaco/pine.ts`.
 
 ## Data source
 
@@ -33,11 +31,11 @@ reach the UI; the dataset's prose descriptions are not shown.
 The validator and signature table load on first use through a dynamic import, so
 opening the app does not pay for them.
 
-## Why a stream parser
+## Why a line tokenizer
 
-TextMate grammars need a regex engine that CodeMirror does not ship. Pine is
-line-oriented (statements may wrap inside brackets, strings are single-line), so
-a stream tokenizer covers the language and stays a few hundred lines.
+Pine is line-oriented (statements may wrap inside brackets, strings are
+single-line), so a line tokenizer covers the language and stays a few hundred
+lines.
 
 ## Tests
 
