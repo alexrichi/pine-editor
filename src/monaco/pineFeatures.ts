@@ -1,11 +1,11 @@
 import * as monaco from 'monaco-editor';
-import { formatDocument } from '@pine-highlighter/formatter';
-import { buildModel, type LineRange } from '@pine-highlighter/document-model';
-import { semanticTokens } from '@pine-highlighter/semantic';
-import { enclosingCall } from '@pine-highlighter/call-resolver';
-import { resolveSymbolAt } from '@pine-highlighter/symbols';
-import { tokenize } from '@pine-highlighter/tokenizer';
-import type { RefEntry, ReferenceIndex } from '@pine-highlighter/reference';
+import { formatDocument } from '../vendor/pine-highlighter/core/formatter';
+import { buildModel, type LineRange } from '../vendor/pine-highlighter/core/document-model';
+import { semanticTokens } from '../vendor/pine-highlighter/core/semantic';
+import { enclosingCall } from '../vendor/pine-highlighter/core/call-resolver';
+import { resolveSymbolAt } from '../vendor/pine-highlighter/core/symbols';
+import { tokenize } from '../vendor/pine-highlighter/core/tokenizer';
+import type { RefEntry, ReferenceIndex } from '../vendor/pine-highlighter/core/reference';
 import { pineCompletionOptions } from '../complete';
 
 const SEMANTIC_LEGEND: monaco.languages.SemanticTokensLegend = {
@@ -31,7 +31,7 @@ let referencePromise: Promise<ReferenceIndex> | null = null;
 
 /** The full v6 reference is 1.5 MB, so it loads in its own chunk on first hover. */
 function loadPineReference(): Promise<ReferenceIndex> {
-  referencePromise ??= import('@pine-highlighter/reference').then(({ loadReference }) => loadReference());
+  referencePromise ??= import('../vendor/pine-highlighter/core/reference').then(({ loadReference }) => loadReference());
   return referencePromise;
 }
 

@@ -10,11 +10,9 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "baseUrl": ".",
-    "types": ["vite/client"],
-    "paths": {
-      "@pine-highlighter/*": ["../pine-script-syntax-highlighter/src/extension/core/*"]
-    }
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "types": ["vite/client"]
   },
   "include": ["src", "test"]
 }
